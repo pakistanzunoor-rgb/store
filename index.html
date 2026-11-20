@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Your Cart</title>
+  <title>Your Cart — Zunoor</title>
   <style>
     :root {
       --bg: #f7f3eb;
@@ -13,6 +13,7 @@
       --border: #dcd5c7;
       --primary: #111111;
       --whatsapp: #16a34a;
+      --error: #b91c1c;
     }
 
     * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -85,6 +86,11 @@
       width: 100%; padding: 12px; border: 1px solid #c9c1b2; border-radius: 8px;
       background: var(--surface); font-size: 15px; color: var(--text);
     }
+    input.invalid { border-color: var(--error); background: #fef2f2; }
+    .error-msg {
+      color: var(--error); font-size: 13px; font-weight: 500;
+      margin: -4px 0 10px; display: none;
+    }
 
     .btn-stack { display: flex; flex-direction: column; gap: 10px; }
     .cod-btn {
@@ -149,9 +155,10 @@
       <div class="form-grid">
         <input type="text" id="cust-name" placeholder="Full Name *" />
         <div class="form-row-2">
-          <input type="tel" id="cust-phone" placeholder="Phone Number *" />
+          <input type="tel" id="cust-phone" inputmode="numeric" maxlength="13" placeholder="03XX-XXXXXXX *" oninput="clearPhoneError()" />
           <input type="text" id="cust-city" placeholder="City *" />
         </div>
+        <div class="error-msg" id="phone-error">Please enter a valid 11-digit mobile number (e.g. 03001234567).</div>
         <textarea id="cust-address" rows="2" placeholder="Complete Delivery Address *"></textarea>
       </div>
 
@@ -164,12 +171,9 @@
   </div>
 
   <script>
-    // 1. STORE LINKS
     const WHATSAPP_NUMBER = "923097631076";
     const COD_SHEET_URL = "https://script.google.com/macros/s/AKfycbyTpVKrrrKTT9ErzdhiXTTvtzR9WHMk0akFR532SnngD30x9jLWeudH3AZ6BblmLUCk/exec";
     const CANVA_STORE_URL = "https://mayumioana.my.canva.site/pakistanzunoor";
-
-    // 2. FIXED DELIVERY FEE
     const DELIVERY_FEE = 190;
 
     let cart = JSON.parse(localStorage.getItem("canva_multi_cart") || "[]");
@@ -239,19 +243,42 @@
       `).join("");
     }
 
+    function clearPhoneError() {
+      document.getElementById("cust-phone").classList.remove("invalid");
+      document.getElementById("phone-error").style.display = "none";
+    }
+
+    function validatePakistaniPhone(raw) {
+      const cleaned = raw.replace(/[\s\-()]/g, "");
+      const pkRegex = /^(?:\+92|92|0)?(3[0-9]{9})$/;
+      const match = cleaned.match(pkRegex);
+      if (!match) return null;
+      return "0" + match[1];
+    }
+
     function getFormData() {
       const name = document.getElementById("cust-name").value.trim();
-      const phone = document.getElementById("cust-phone").value.trim();
+      const rawPhone = document.getElementById("cust-phone").value.trim();
       const city = document.getElementById("cust-city").value.trim();
       const address = document.getElementById("cust-address").value.trim();
-      if (!name || !phone || !city || !address) {
+
+      if (!name || !rawPhone || !city || !address) {
         alert("Please fill in your Name, Phone Number, City, and Delivery Address.");
         return null;
       }
+
+      const validPhone = validatePakistaniPhone(rawPhone);
+      if (!validPhone) {
+        document.getElementById("cust-phone").classList.add("invalid");
+        document.getElementById("phone-error").style.display = "block";
+        document.getElementById("cust-phone").focus();
+        return null;
+      }
+
       const { subtotal, shipping, grandTotal } = getTotals();
       const itemsSummary = cart.map(i => `${i.name} (x${i.qty}) - Rs. ${(i.price * i.qty).toLocaleString()}`).join("\n");
       const totalBreakdown = `Rs. ${grandTotal.toLocaleString()} (Sub: ${subtotal} + Del: ${shipping})`;
-      return { name, phone, city, address, items: itemsSummary, subtotal, shipping, grandTotal, total: totalBreakdown };
+      return { name, phone: validPhone, city, address, items: itemsSummary, subtotal, shipping, grandTotal, total: totalBreakdown };
     }
 
     async function placeCODOrder() {
@@ -266,7 +293,6 @@
         await fetch(COD_SHEET_URL, {
           method: "POST",
           mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
       } catch (e) {
