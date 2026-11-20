@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Your Cart</title>
+  <style>
+    :root {
+      --bg: #f7f3eb;
+      --surface: #ffffff;
+      --text: #111111;
+      --muted: #5c574e;
+      --border: #dcd5c7;
+      --primary: #111111;
+      --whatsapp: #16a34a;
+    }
+
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; background: #ede8de; color: var(--text);
+      min-height: 100dvh; display: flex; justify-content: center;
+    }
+
+    /* Responsive Container: Full screen on mobile, centered card on PC */
+    .cart-shell {
+      width: 100%; max-width: 520px; min-height: 100dvh;
+      background: var(--bg); display: flex; flex-direction: column;
+      padding: 22px 18px; box-shadow: 0 0 30px rgba(0,0,0,0.08);
+    }
+    @media (min-width: 600px) {
+      body { padding: 24px 16px; }
+      .cart-shell { min-height: calc(100dvh - 48px); border-radius: 14px; padding: 28px 24px; }
+    }
+
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
+    .close-btn {
+      background: none; border: none; color: var(--text); font-size: 24px;
+      width: 42px; height: 42px; display: grid; place-items: center; cursor: pointer;
+    }
+
+    .items-list { flex: 1; padding: 8px 0; overflow-y: auto; }
+    .empty-state {
+      height: 50vh; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; text-align: center; gap: 10px;
+    }
+    .continue-link {
+      color: var(--text); font-size: 16px; text-decoration: underline;
+      cursor: pointer; background: none; border: none; padding: 12px; font-weight: 500;
+    }
+
+    .cart-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .item-details strong { display: block; font-size: 15px; margin-bottom: 4px; }
+    .item-details span { color: var(--muted); font-size: 14px; }
+
+    .qty-box { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .qty-box button {
+      width: 34px; height: 34px; border: 1px solid var(--text); background: transparent;
+      border-radius: 6px; font-size: 18px; font-weight: 600; cursor: pointer; color: var(--text);
+    }
+    .qty-box span { min-width: 20px; text-align: center; font-weight: 600; }
+
+    .checkout-section { border-top: 1px solid var(--border); padding-top: 16px; }
+    .total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 18px; font-weight: 700; margin-bottom: 14px;
+    }
+
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+    @media (min-width: 480px) {
+      .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    }
+
+    input, textarea {
+      width: 100%; padding: 12px; border: 1px solid #c9c1b2; border-radius: 8px;
+      background: var(--surface); font-size: 15px; color: var(--text);
+    }
+
+    .btn-stack { display: flex; flex-direction: column; gap: 10px; }
+    .cod-btn {
+      width: 100%; background: var(--primary); color: var(--bg); border: none;
+      padding: 15px; border-radius: 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer; min-height: 50px;
+    }
+    .cod-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .wa-btn {
+      width: 100%; background: var(--whatsapp); color: #fff; border: none;
+      padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer; min-height: 48px;
+    }
+    .back-btn {
+      width: 100%; background: transparent; color: var(--text); border: 1px solid var(--text);
+      padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; min-height: 44px;
+    }
+
+    /* Order Confirmation Screen */
+    .success-box {
+      text-align: center; padding: 40px 16px; display: none;
+      flex-direction: column; align-items: center; justify-content: center; flex: 1;
+    }
+    .success-badge {
+      width: 56px; height: 56px; border-radius: 50%; background: #16a34a; color: #fff;
+      display: grid; place-items: center; font-size: 28px; margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="cart-shell">
+    <div class="header">
+      <h1>Your cart (<span id="cart-count">0</span>)</h1>
+      <button onclick="goBackToStore()" class="close-btn" title="Continue shopping">✕</button>
+    </div>
+
+    <div class="items-list" id="items-list"></div>
+
+    <!-- Order Placed Confirmation -->
+    <div class="success-box" id="success-box">
+      <div class="success-badge">✓</div>
+      <h2 style="margin:0 0 8px;">Order Confirmed!</h2>
+      <p style="color:var(--muted); margin:0 0 24px; line-height:1.5;">
+        Thank you! Your Cash on Delivery order has been received. We will contact you shortly to confirm dispatch.
+      </p>
+      <button class="cod-btn" onclick="goBackToStore()">Continue Shopping</button>
+    </div>
+
+    <!-- Checkout Form & Dual Buttons -->
+    <div class="checkout-section" id="checkout-footer" style="display:none;">
+      <div class="total-row">
+        <span>Total (Cash on Delivery)</span>
+        <span>Rs. <span id="cart-total">0</span></span>
+      </div>
+
+      <div class="form-grid">
+        <input type="text" id="cust-name" placeholder="Full Name *" />
+        <div class="form-row-2">
+          <input type="tel" id="cust-phone" placeholder="Phone Number *" />
+          <input type="text" id="cust-city" placeholder="City *" />
+        </div>
+        <textarea id="cust-address" rows="2" placeholder="Complete Delivery Address *"></textarea>
+      </div>
+
+      <div class="btn-stack">
+        <button class="cod-btn" id="cod-submit-btn" onclick="placeCODOrder()">Place Cash on Delivery Order</button>
+        <button class="wa-btn" onclick="sendWhatsAppOrder()">Order via WhatsApp Instead</button>
+        <button class="back-btn" onclick="goBackToStore()">+ Continue Shopping</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // CONFIGURED WITH ALL YOUR LIVE LINKS
+    const WHATSAPP_NUMBER = "923097631076";
+    const COD_SHEET_URL = "https://script.google.com/macros/s/AKfycbyTpVKrrrKTT9ErzdhiXTTvtzR9WHMk0akFR532SnngD30x9jLWeudH3AZ6BblmLUCk/exec";
+    const CANVA_STORE_URL = "https://mayumioana.my.canva.site/pakistanzunoor";
+
+    let cart = JSON.parse(localStorage.getItem("canva_multi_cart") || "[]");
+
+    // Read ?add=ItemName&price=2500 from Canva "Add to cart" button links
+    const params = new URLSearchParams(window.location.search);
+    const addedName = params.get("add");
+    const addedPrice = Number(params.get("price"));
+
+    if (addedName && addedPrice > 0) {
+      const existing = cart.find(i => i.name.toLowerCase() === addedName.toLowerCase());
+      if (existing) existing.qty += 1;
+      else cart.push({ name: addedName, price: addedPrice, qty: 1 });
+
+      localStorage.setItem("canva_multi_cart", JSON.stringify(cart));
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    function changeQty(index, delta) {
+      cart[index].qty += delta;
+      if (cart[index].qty <= 0) cart.splice(index, 1);
+      localStorage.setItem("canva_multi_cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    function renderCart() {
+      const totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+      const totalAmt = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+      document.getElementById("cart-count").innerText = totalQty;
+      document.getElementById("cart-total").innerText = totalAmt.toLocaleString();
+
+      const list = document.getElementById("items-list");
+      const footer = document.getElementById("checkout-footer");
+
+      if (cart.length === 0) {
+        footer.style.display = "none";
+        list.innerHTML = `
+          <div class="empty-state">
+            <button class="continue-link" onclick="goBackToStore()">Continue shopping</button>
+          </div>
+        `;
+        return;
+      }
+
+      footer.style.display = "block";
+      list.innerHTML = cart.map((item, idx) => `
+        <div class="cart-item">
+          <div class="item-details">
+            <strong>${item.name}</strong>
+            <span>Rs. ${item.price.toLocaleString()} × ${item.qty}</span>
+          </div>
+          <div class="qty-box">
+            <button onclick="changeQty(${idx}, -1)">−</button>
+            <span>${item.qty}</span>
+            <button onclick="changeQty(${idx}, 1)">+</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function getFormData() {
+      const name = document.getElementById("cust-name").value.trim();
+      const phone = document.getElementById("cust-phone").value.trim();
+      const city = document.getElementById("cust-city").value.trim();
+      const address = document.getElementById("cust-address").value.trim();
+      if (!name || !phone || !city || !address) {
+        alert("Please fill in your Name, Phone Number, City, and Delivery Address.");
+        return null;
+      }
+      const itemsSummary = cart.map(i => `${i.name} (x${i.qty}) - Rs. ${(i.price * i.qty).toLocaleString()}`).join("\n");
+      const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+      return { name, phone, city, address, items: itemsSummary, total };
+    }
+
+    async function placeCODOrder() {
+      const data = getFormData();
+      if (!data) return;
+
+      const btn = document.getElementById("cod-submit-btn");
+      btn.disabled = true;
+      btn.innerText = "Placing Order...";
+
+      try {
+        await fetch(COD_SHEET_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (e) {
+        console.error(e);
+      }
+
+      // Clear cart and show confirmation
+      cart = [];
+      localStorage.removeItem("canva_multi_cart");
+      document.getElementById("cart-count").innerText = "0";
+      document.getElementById("items-list").style.display = "none";
+      document.getElementById("checkout-footer").style.display = "none";
+      document.getElementById("success-box").style.display = "flex";
+    }
+
+    function sendWhatsAppOrder() {
+      const data = getFormData();
+      if (!data) return;
+
+      const msg = `*NEW COD ORDER*\n\n*Items:*\n${data.items}\n\n*Total: Rs. ${data.total.toLocaleString()}*\n\n*Customer:* ${data.name}\n*Phone:* ${data.phone}\n*City:* ${data.city}\n*Address:* ${data.address}`;
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
+
+    function goBackToStore() {
+      window.location.href = CANVA_STORE_URL;
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>
