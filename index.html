@@ -21,7 +21,6 @@
       min-height: 100dvh; display: flex; justify-content: center;
     }
 
-    /* Responsive Container: Full screen on mobile, centered card on PC */
     .cart-shell {
       width: 100%; max-width: 520px; min-height: 100dvh;
       background: var(--bg); display: flex; flex-direction: column;
@@ -66,10 +65,15 @@
     }
     .qty-box span { min-width: 20px; text-align: center; font-weight: 600; }
 
-    .checkout-section { border-top: 1px solid var(--border); padding-top: 16px; }
+    .checkout-section { border-top: 1px solid var(--border); padding-top: 14px; }
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 14px; color: var(--muted); margin-bottom: 6px;
+    }
     .total-row {
       display: flex; justify-content: space-between; align-items: center;
-      font-size: 18px; font-weight: 700; margin-bottom: 14px;
+      font-size: 18px; font-weight: 700; margin: 10px 0 14px;
+      padding-top: 8px; border-top: 1px dashed var(--border);
     }
 
     .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
@@ -100,7 +104,6 @@
       cursor: pointer; min-height: 44px;
     }
 
-    /* Order Confirmation Screen */
     .success-box {
       text-align: center; padding: 40px 16px; display: none;
       flex-direction: column; align-items: center; justify-content: center; flex: 1;
@@ -120,7 +123,6 @@
 
     <div class="items-list" id="items-list"></div>
 
-    <!-- Order Placed Confirmation -->
     <div class="success-box" id="success-box">
       <div class="success-badge">✓</div>
       <h2 style="margin:0 0 8px;">Order Confirmed!</h2>
@@ -130,10 +132,17 @@
       <button class="cod-btn" onclick="goBackToStore()">Continue Shopping</button>
     </div>
 
-    <!-- Checkout Form & Dual Buttons -->
     <div class="checkout-section" id="checkout-footer" style="display:none;">
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span>Rs. <span id="cart-subtotal">0</span></span>
+      </div>
+      <div class="summary-row">
+        <span>Delivery Charges</span>
+        <span>Rs. <span id="cart-shipping">190</span></span>
+      </div>
       <div class="total-row">
-        <span>Total (Cash on Delivery)</span>
+        <span>Grand Total (COD)</span>
         <span>Rs. <span id="cart-total">0</span></span>
       </div>
 
@@ -155,14 +164,16 @@
   </div>
 
   <script>
-    // CONFIGURED WITH ALL YOUR LIVE LINKS
+    // 1. STORE LINKS
     const WHATSAPP_NUMBER = "923097631076";
     const COD_SHEET_URL = "https://script.google.com/macros/s/AKfycbyTpVKrrrKTT9ErzdhiXTTvtzR9WHMk0akFR532SnngD30x9jLWeudH3AZ6BblmLUCk/exec";
     const CANVA_STORE_URL = "https://mayumioana.my.canva.site/pakistanzunoor";
 
+    // 2. FIXED DELIVERY FEE
+    const DELIVERY_FEE = 190;
+
     let cart = JSON.parse(localStorage.getItem("canva_multi_cart") || "[]");
 
-    // Read ?add=ItemName&price=2500 from Canva "Add to cart" button links
     const params = new URLSearchParams(window.location.search);
     const addedName = params.get("add");
     const addedPrice = Number(params.get("price"));
@@ -183,12 +194,21 @@
       renderCart();
     }
 
-    function renderCart() {
+    function getTotals() {
       const totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
-      const totalAmt = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+      const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+      const shipping = DELIVERY_FEE;
+      const grandTotal = subtotal + shipping;
+      return { totalQty, subtotal, shipping, grandTotal };
+    }
+
+    function renderCart() {
+      const { totalQty, subtotal, shipping, grandTotal } = getTotals();
 
       document.getElementById("cart-count").innerText = totalQty;
-      document.getElementById("cart-total").innerText = totalAmt.toLocaleString();
+      document.getElementById("cart-subtotal").innerText = subtotal.toLocaleString();
+      document.getElementById("cart-shipping").innerText = shipping.toLocaleString();
+      document.getElementById("cart-total").innerText = grandTotal.toLocaleString();
 
       const list = document.getElementById("items-list");
       const footer = document.getElementById("checkout-footer");
@@ -228,9 +248,10 @@
         alert("Please fill in your Name, Phone Number, City, and Delivery Address.");
         return null;
       }
+      const { subtotal, shipping, grandTotal } = getTotals();
       const itemsSummary = cart.map(i => `${i.name} (x${i.qty}) - Rs. ${(i.price * i.qty).toLocaleString()}`).join("\n");
-      const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
-      return { name, phone, city, address, items: itemsSummary, total };
+      const totalBreakdown = `Rs. ${grandTotal.toLocaleString()} (Sub: ${subtotal} + Del: ${shipping})`;
+      return { name, phone, city, address, items: itemsSummary, subtotal, shipping, grandTotal, total: totalBreakdown };
     }
 
     async function placeCODOrder() {
@@ -252,7 +273,6 @@
         console.error(e);
       }
 
-      // Clear cart and show confirmation
       cart = [];
       localStorage.removeItem("canva_multi_cart");
       document.getElementById("cart-count").innerText = "0";
@@ -265,7 +285,7 @@
       const data = getFormData();
       if (!data) return;
 
-      const msg = `*NEW COD ORDER*\n\n*Items:*\n${data.items}\n\n*Total: Rs. ${data.total.toLocaleString()}*\n\n*Customer:* ${data.name}\n*Phone:* ${data.phone}\n*City:* ${data.city}\n*Address:* ${data.address}`;
+      const msg = `*NEW COD ORDER*\n\n*Items:*\n${data.items}\n\n*Subtotal:* Rs. ${data.subtotal.toLocaleString()}\n*Delivery:* Rs. ${data.shipping.toLocaleString()}\n*Grand Total: Rs. ${data.grandTotal.toLocaleString()}*\n\n*Customer:* ${data.name}\n*Phone:* ${data.phone}\n*City:* ${data.city}\n*Address:* ${data.address}`;
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
     }
 
