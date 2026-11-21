@@ -50,7 +50,7 @@
       display: flex; align-items: center; gap: 18px;
     }
     .quick-qty-controls button {
-      width: 40px; height: 40px; border: 1.5px solid var(--text); background: var(--bg);
+      width: 42px; height: 42px; border: 1.5px solid var(--text); background: var(--bg);
       border-radius: 8px; font-size: 20px; font-weight: 700; cursor: pointer; color: var(--text);
     }
     .quick-qty-controls span {
@@ -163,11 +163,11 @@
           <span id="quick-item-qty">1</span>
           <button onclick="adjustQuickQty(1)">+</button>
         </div>
-        <span style="font-size:13px; color:var(--muted);" id="quick-status-text">Returning to store in a moment...</span>
+        <span style="font-size:13px; color:var(--muted);" id="quick-status-text">Returning to store in 4s...</span>
       </div>
 
       <div class="quick-actions">
-        <button class="cod-btn" onclick="goBackToStore()">Continue Shopping</button>
+        <button class="cod-btn" onclick="goBackToStore()">← Continue Shopping</button>
         <button class="back-btn" onclick="stayInCart()">View Cart & Checkout (<span id="quick-total-badge">1</span>)</button>
       </div>
     </div>
@@ -228,9 +228,11 @@
     const COD_SHEET_URL = "https://script.google.com/macros/s/AKfycbyTpVKrrrKTT9ErzdhiXTTvtzR9WHMk0akFR532SnngD30x9jLWeudH3AZ6BblmLUCk/exec";
     const CANVA_STORE_URL = "https://mayumioana.my.canva.site/pakistanzunoor";
     const DELIVERY_FEE = 190;
+    const IDLE_SECONDS = 4; // Auto-returns after 4 seconds of inactivity
 
     let cart = JSON.parse(localStorage.getItem("canva_multi_cart") || "[]");
-    let returnTimer = null;
+    let countdownInterval = null;
+    let secondsLeft = IDLE_SECONDS;
     let activeQuickItemIndex = -1;
 
     const params = new URLSearchParams(window.location.search);
@@ -250,14 +252,33 @@
       localStorage.setItem("canva_multi_cart", JSON.stringify(cart));
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      // Show Quick-Add screen with + / - adjuster & auto-return after 1.8s
       document.getElementById("main-cart-view").style.display = "none";
       document.getElementById("quick-add-screen").style.display = "flex";
       updateQuickScreen();
+      startIdleCountdown();
+    }
 
-      returnTimer = setTimeout(() => {
-        goBackToStore();
-      }, 1800);
+    function startIdleCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      secondsLeft = IDLE_SECONDS;
+      updateCountdownLabel();
+
+      countdownInterval = setInterval(() => {
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) {
+          clearInterval(countdownInterval);
+          goBackToStore();
+        } else {
+          updateCountdownLabel();
+        }
+      }, 1000);
+    }
+
+    function updateCountdownLabel() {
+      const statusEl = document.getElementById("quick-status-text");
+      if (statusEl) {
+        statusEl.innerText = `Returning to store in ${secondsLeft}s...`;
+      }
     }
 
     function updateQuickScreen() {
@@ -278,12 +299,8 @@
     }
 
     function adjustQuickQty(delta) {
-      // Stop auto-redirect so user can finish picking quantity comfortably
-      if (returnTimer) {
-        clearTimeout(returnTimer);
-        returnTimer = null;
-        document.getElementById("quick-status-text").innerText = "Quantity updated — tap Continue Shopping when ready";
-      }
+      // Reset the 4-second idle timer on every click so it never interrupts the user
+      startIdleCountdown();
 
       if (activeQuickItemIndex < 0 || !cart[activeQuickItemIndex]) return;
       cart[activeQuickItemIndex].qty += delta;
@@ -298,7 +315,7 @@
     }
 
     function stayInCart() {
-      if (returnTimer) clearTimeout(returnTimer);
+      if (countdownInterval) clearInterval(countdownInterval);
       document.getElementById("quick-add-screen").style.display = "none";
       document.getElementById("main-cart-view").style.display = "flex";
       renderCart();
@@ -429,6 +446,7 @@
     }
 
     function goBackToStore() {
+      if (countdownInterval) clearInterval(countdownInterval);
       window.location.href = CANVA_STORE_URL;
     }
 
