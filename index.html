@@ -447,7 +447,11 @@
 
     function goBackToStore() {
       if (countdownInterval) clearInterval(countdownInterval);
-      window.location.href = CANVA_STORE_URL;
+      if (document.referrer && document.referrer.includes("canva.site")) {
+        window.history.back();
+      } else {
+        window.location.href = CANVA_STORE_URL;
+      }
     }
 
     renderCart();
