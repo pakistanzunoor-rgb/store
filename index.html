@@ -445,12 +445,23 @@
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
     }
 
-    function goBackToStore() {
+   function goBackToStore() {
       if (countdownInterval) clearInterval(countdownInterval);
-      if (document.referrer && document.referrer.includes("canva.site")) {
+
+      // 1. If opened in the same tab from Canva, step back to the exact scroll position & sub-page
+      if (window.history.length > 1) {
         window.history.back();
+        // Safety fallback in case browser blocks history navigation
+        setTimeout(() => {
+          window.location.href = CANVA_STORE_URL;
+        }, 400);
       } else {
-        window.location.href = CANVA_STORE_URL;
+        // 2. If opened in a new tab, close it to reveal the original Canva tab underneath
+        window.close();
+        // 3. Final fallback if opened directly as a standalone tab
+        setTimeout(() => {
+          window.location.href = CANVA_STORE_URL;
+        }, 200);
       }
     }
 
