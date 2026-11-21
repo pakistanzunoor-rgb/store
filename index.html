@@ -32,6 +32,34 @@
       .cart-shell { min-height: calc(100dvh - 48px); border-radius: 14px; padding: 28px 24px; }
     }
 
+    /* Quick "Added to Cart" Screen with Live + / - Controls */
+    .quick-add-screen {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; flex: 1; padding: 24px 16px;
+    }
+    .check-circle {
+      width: 58px; height: 58px; border-radius: 50%; background: var(--primary); color: var(--bg);
+      display: grid; place-items: center; font-size: 28px; margin-bottom: 14px;
+    }
+    .quick-qty-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 20px; margin: 16px 0 20px; width: 100%; max-width: 320px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .quick-qty-controls {
+      display: flex; align-items: center; gap: 18px;
+    }
+    .quick-qty-controls button {
+      width: 40px; height: 40px; border: 1.5px solid var(--text); background: var(--bg);
+      border-radius: 8px; font-size: 20px; font-weight: 700; cursor: pointer; color: var(--text);
+    }
+    .quick-qty-controls span {
+      font-size: 20px; font-weight: 700; min-width: 28px; text-align: center;
+    }
+    .quick-actions {
+      display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px;
+    }
+
     .header {
       display: flex; justify-content: space-between; align-items: center;
       padding-bottom: 16px; border-bottom: 1px solid var(--border);
@@ -122,50 +150,75 @@
 </head>
 <body>
   <div class="cart-shell">
-    <div class="header">
-      <h1>Your cart (<span id="cart-count">0</span>)</h1>
-      <button onclick="goBackToStore()" class="close-btn" title="Continue shopping">✕</button>
-    </div>
+    <!-- Quick Add Confirmation + Live Quantity Adjuster -->
+    <div class="quick-add-screen" id="quick-add-screen">
+      <div class="check-circle">✓</div>
+      <h2 style="margin:0 0 4px;" id="added-item-title">Added to Cart</h2>
+      <p style="color:var(--muted); margin:0; font-size:14px;" id="added-item-price"></p>
 
-    <div class="items-list" id="items-list"></div>
-
-    <div class="success-box" id="success-box">
-      <div class="success-badge">✓</div>
-      <h2 style="margin:0 0 8px;">Order Confirmed!</h2>
-      <p style="color:var(--muted); margin:0 0 24px; line-height:1.5;">
-        Thank you! Your Cash on Delivery order has been received. We will contact you shortly to confirm dispatch.
-      </p>
-      <button class="cod-btn" onclick="goBackToStore()">Continue Shopping</button>
-    </div>
-
-    <div class="checkout-section" id="checkout-footer" style="display:none;">
-      <div class="summary-row">
-        <span>Subtotal</span>
-        <span>Rs. <span id="cart-subtotal">0</span></span>
-      </div>
-      <div class="summary-row">
-        <span>Delivery Charges</span>
-        <span>Rs. <span id="cart-shipping">190</span></span>
-      </div>
-      <div class="total-row">
-        <span>Grand Total (COD)</span>
-        <span>Rs. <span id="cart-total">0</span></span>
-      </div>
-
-      <div class="form-grid">
-        <input type="text" id="cust-name" placeholder="Full Name *" />
-        <div class="form-row-2">
-          <input type="tel" id="cust-phone" inputmode="numeric" maxlength="13" placeholder="03XX-XXXXXXX *" oninput="clearPhoneError()" />
-          <input type="text" id="cust-city" placeholder="City *" />
+      <div class="quick-qty-card">
+        <span style="font-size:13px; color:var(--muted); font-weight:600;">Quantity in Cart</span>
+        <div class="quick-qty-controls">
+          <button onclick="adjustQuickQty(-1)">−</button>
+          <span id="quick-item-qty">1</span>
+          <button onclick="adjustQuickQty(1)">+</button>
         </div>
-        <div class="error-msg" id="phone-error">Please enter a valid 11-digit mobile number (e.g. 03001234567).</div>
-        <textarea id="cust-address" rows="2" placeholder="Complete Delivery Address *"></textarea>
+        <span style="font-size:13px; color:var(--muted);" id="quick-status-text">Returning to store in a moment...</span>
       </div>
 
-      <div class="btn-stack">
-        <button class="cod-btn" id="cod-submit-btn" onclick="placeCODOrder()">Place Cash on Delivery Order</button>
-        <button class="wa-btn" onclick="sendWhatsAppOrder()">Order via WhatsApp Instead</button>
-        <button class="back-btn" onclick="goBackToStore()">+ Continue Shopping</button>
+      <div class="quick-actions">
+        <button class="cod-btn" onclick="goBackToStore()">Continue Shopping</button>
+        <button class="back-btn" onclick="stayInCart()">View Cart & Checkout (<span id="quick-total-badge">1</span>)</button>
+      </div>
+    </div>
+
+    <!-- Main Full Cart View -->
+    <div id="main-cart-view" style="display:flex; flex-direction:column; flex:1;">
+      <div class="header">
+        <h1>Your cart (<span id="cart-count">0</span>)</h1>
+        <button onclick="goBackToStore()" class="close-btn" title="Continue shopping">✕</button>
+      </div>
+
+      <div class="items-list" id="items-list"></div>
+
+      <div class="success-box" id="success-box">
+        <div class="success-badge">✓</div>
+        <h2 style="margin:0 0 8px;">Order Confirmed!</h2>
+        <p style="color:var(--muted); margin:0 0 24px; line-height:1.5;">
+          Thank you! Your Cash on Delivery order has been received. We will contact you shortly to confirm dispatch.
+        </p>
+        <button class="cod-btn" onclick="goBackToStore()">Continue Shopping</button>
+      </div>
+
+      <div class="checkout-section" id="checkout-footer" style="display:none;">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span>Rs. <span id="cart-subtotal">0</span></span>
+        </div>
+        <div class="summary-row">
+          <span>Delivery Charges</span>
+          <span>Rs. <span id="cart-shipping">190</span></span>
+        </div>
+        <div class="total-row">
+          <span>Grand Total (COD)</span>
+          <span>Rs. <span id="cart-total">0</span></span>
+        </div>
+
+        <div class="form-grid">
+          <input type="text" id="cust-name" placeholder="Full Name *" />
+          <div class="form-row-2">
+            <input type="tel" id="cust-phone" inputmode="numeric" maxlength="13" placeholder="03XX-XXXXXXX *" oninput="clearPhoneError()" />
+            <input type="text" id="cust-city" placeholder="City *" />
+          </div>
+          <div class="error-msg" id="phone-error">Please enter a valid 11-digit mobile number (e.g. 03001234567).</div>
+          <textarea id="cust-address" rows="2" placeholder="Complete Delivery Address *"></textarea>
+        </div>
+
+        <div class="btn-stack">
+          <button class="cod-btn" id="cod-submit-btn" onclick="placeCODOrder()">Place Cash on Delivery Order</button>
+          <button class="wa-btn" onclick="sendWhatsAppOrder()">Order via WhatsApp Instead</button>
+          <button class="back-btn" onclick="goBackToStore()">+ Continue Shopping</button>
+        </div>
       </div>
     </div>
   </div>
@@ -177,18 +230,78 @@
     const DELIVERY_FEE = 190;
 
     let cart = JSON.parse(localStorage.getItem("canva_multi_cart") || "[]");
+    let returnTimer = null;
+    let activeQuickItemIndex = -1;
 
     const params = new URLSearchParams(window.location.search);
     const addedName = params.get("add");
     const addedPrice = Number(params.get("price"));
 
     if (addedName && addedPrice > 0) {
-      const existing = cart.find(i => i.name.toLowerCase() === addedName.toLowerCase());
-      if (existing) existing.qty += 1;
-      else cart.push({ name: addedName, price: addedPrice, qty: 1 });
+      let idx = cart.findIndex(i => i.name.toLowerCase() === addedName.toLowerCase());
+      if (idx > -1) {
+        cart[idx].qty += 1;
+      } else {
+        cart.push({ name: addedName, price: addedPrice, qty: 1 });
+        idx = cart.length - 1;
+      }
+      activeQuickItemIndex = idx;
 
       localStorage.setItem("canva_multi_cart", JSON.stringify(cart));
       window.history.replaceState({}, document.title, window.location.pathname);
+
+      // Show Quick-Add screen with + / - adjuster & auto-return after 1.8s
+      document.getElementById("main-cart-view").style.display = "none";
+      document.getElementById("quick-add-screen").style.display = "flex";
+      updateQuickScreen();
+
+      returnTimer = setTimeout(() => {
+        goBackToStore();
+      }, 1800);
+    }
+
+    function updateQuickScreen() {
+      const totalItems = cart.reduce((sum, i) => sum + i.qty, 0);
+      document.getElementById("quick-total-badge").innerText = totalItems;
+
+      if (activeQuickItemIndex < 0 || !cart[activeQuickItemIndex]) {
+        document.getElementById("added-item-title").innerText = "Removed from Cart";
+        document.getElementById("added-item-price").innerText = "";
+        document.getElementById("quick-item-qty").innerText = "0";
+        return;
+      }
+
+      const item = cart[activeQuickItemIndex];
+      document.getElementById("added-item-title").innerText = item.name;
+      document.getElementById("added-item-price").innerText = `Rs. ${(item.price * item.qty).toLocaleString()} (Rs. ${item.price.toLocaleString()} each)`;
+      document.getElementById("quick-item-qty").innerText = item.qty;
+    }
+
+    function adjustQuickQty(delta) {
+      // Stop auto-redirect so user can finish picking quantity comfortably
+      if (returnTimer) {
+        clearTimeout(returnTimer);
+        returnTimer = null;
+        document.getElementById("quick-status-text").innerText = "Quantity updated — tap Continue Shopping when ready";
+      }
+
+      if (activeQuickItemIndex < 0 || !cart[activeQuickItemIndex]) return;
+      cart[activeQuickItemIndex].qty += delta;
+
+      if (cart[activeQuickItemIndex].qty <= 0) {
+        cart.splice(activeQuickItemIndex, 1);
+        activeQuickItemIndex = -1;
+      }
+
+      localStorage.setItem("canva_multi_cart", JSON.stringify(cart));
+      updateQuickScreen();
+    }
+
+    function stayInCart() {
+      if (returnTimer) clearTimeout(returnTimer);
+      document.getElementById("quick-add-screen").style.display = "none";
+      document.getElementById("main-cart-view").style.display = "flex";
+      renderCart();
     }
 
     function changeQty(index, delta) {
