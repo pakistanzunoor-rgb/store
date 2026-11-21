@@ -163,7 +163,7 @@
           <span id="quick-item-qty">1</span>
           <button onclick="adjustQuickQty(1)">+</button>
         </div>
-        <span style="font-size:13px; color:var(--muted);" id="quick-status-text">Returning to store in 4s...</span>
+        <span style="font-size:13px; color:var(--muted);" id="quick-status-text">Returning to store in 10s...</span>
       </div>
 
       <div class="quick-actions">
@@ -228,7 +228,7 @@
     const COD_SHEET_URL = "https://script.google.com/macros/s/AKfycbyTpVKrrrKTT9ErzdhiXTTvtzR9WHMk0akFR532SnngD30x9jLWeudH3AZ6BblmLUCk/exec";
     const CANVA_STORE_URL = "https://mayumioana.my.canva.site/pakistanzunoor";
     const DELIVERY_FEE = 190;
-    const IDLE_SECONDS = 4; // Auto-returns after 4 seconds of inactivity
+    const IDLE_SECONDS = 10; // Auto-returns after 10 seconds of inactivity
 
     let cart = JSON.parse(localStorage.getItem("canva_multi_cart") || "[]");
     let countdownInterval = null;
@@ -299,7 +299,7 @@
     }
 
     function adjustQuickQty(delta) {
-      // Reset the 4-second idle timer on every click so it never interrupts the user
+      // Reset the 10-second idle timer on every click so it never interrupts the user
       startIdleCountdown();
 
       if (activeQuickItemIndex < 0 || !cart[activeQuickItemIndex]) return;
